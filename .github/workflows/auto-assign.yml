@@ -1,0 +1,21 @@
+name: Auto-assign (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      assignee:
+        description: "Assignee to add to new issues"
+        required: false
+        type: string
+        default: yancya
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Assign issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue edit "${{ github.event.issue.number }}" --add-assignee "${{ inputs.assignee }}" --repo "${{ github.repository }}"
