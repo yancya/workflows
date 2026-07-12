@@ -8,11 +8,9 @@ on:
         required: true
 
 env:
-  PROJECT_OWNER: yancya
-  PROJECT_NUMBER: 1
   PROJECT_ID: PVT_kwHOABcbgs4AZ9fF
-  STATUS_FIELD_NAME: Status
-  STATUS_VALUE: Done
+  STATUS_FIELD_ID: PVTSSF_lAHOABcbgs4AZ9fFzgQoRE0
+  STATUS_OPTION_ID: "98236657"
 
 jobs:
   mark-done:
@@ -44,12 +42,11 @@ jobs:
             exit 0
           fi
 
-          field_json=$(gh project field-list "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --format json)
-          field_id=$(echo "$field_json" | jq -r --arg name "$STATUS_FIELD_NAME" '.fields[] | select(.name==$name) | .id')
-          option_id=$(echo "$field_json" | jq -r --arg name "$STATUS_FIELD_NAME" --arg status "$STATUS_VALUE" '.fields[] | select(.name==$name) | .options[] | select(.name==$status) | .id')
+          gh api graphql -f query='
+            mutation($project:ID!, $item:ID!, $field:ID!, $optId:String!) {
+              updateProjectV2ItemFieldValue(input:{projectId:$project, itemId:$item, fieldId:$field, value:{singleSelectOptionId:$optId}}) {
+                projectV2Item { id }
+              }
+            }' -f project="$PROJECT_ID" -f item="$item_id" -f field="$STATUS_FIELD_ID" -f optId="$STATUS_OPTION_ID" > /dev/null
 
-          gh project item-edit \
-            --id "$item_id" \
-            --project-id "$PROJECT_ID" \
-            --field-id "$field_id" \
-            --single-select-option-id "$option_id"
+          echo "marked $OWNER/$REPO#$ISSUE_NUMBER done (item $item_id)"
