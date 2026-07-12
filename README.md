@@ -30,6 +30,7 @@ jobs:
 
 - `auto-assign.yml` — issue 作成時に指定ユーザー（デフォルト `yancya`）を自動 assign する
 - `add-to-board.yml` — issue 作成時に yancya の個人プロジェクト「やんちゃのプロジェクト」（[yancya/project](https://github.com/yancya/project) 参照）に自動追加し、Status を設定する。`project` スコープを持つ PAT を呼び出し元 repo の secret（例: `PROJECT_TOKEN`）として渡す必要がある（このリポジトリ自体には秘密情報を置かない設計のため）
+- `mark-board-done.yml` — issue close 時に、その issue に対応するボード上の project item を探して Status を `Done` に更新する。ボードに載っていない issue の close は何もせずスキップする。`add-to-board.yml` と同様に `PROJECT_TOKEN` を呼び出し元から渡す必要がある
 
 ## 新しいリポジトリへの展開
 

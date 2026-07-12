@@ -1,0 +1,55 @@
+name: Mark board item Done on issue close (reusable)
+
+on:
+  workflow_call:
+    secrets:
+      PROJECT_TOKEN:
+        description: "PAT with project scope, authorized for the yancya user account project"
+        required: true
+
+env:
+  PROJECT_OWNER: yancya
+  PROJECT_NUMBER: 1
+  PROJECT_ID: PVT_kwHOABcbgs4AZ9fF
+  STATUS_FIELD_NAME: Status
+  STATUS_VALUE: Done
+
+jobs:
+  mark-done:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find project item for this issue and set Status=Done
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          OWNER: ${{ github.event.repository.owner.login }}
+          REPO: ${{ github.event.repository.name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+
+          item_id=$(gh api graphql -f query='
+            query($owner:String!, $repo:String!, $number:Int!) {
+              repository(owner:$owner, name:$repo) {
+                issue(number:$number) {
+                  projectItems(first: 20) {
+                    nodes { id project { id } }
+                  }
+                }
+              }
+            }' -f owner="$OWNER" -f repo="$REPO" -F number="$ISSUE_NUMBER" \
+            -q ".data.repository.issue.projectItems.nodes[] | select(.project.id == \"$PROJECT_ID\") | .id")
+
+          if [ -z "$item_id" ]; then
+            echo "issue $OWNER/$REPO#$ISSUE_NUMBER is not on the board; nothing to do"
+            exit 0
+          fi
+
+          field_json=$(gh project field-list "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --format json)
+          field_id=$(echo "$field_json" | jq -r --arg name "$STATUS_FIELD_NAME" '.fields[] | select(.name==$name) | .id')
+          option_id=$(echo "$field_json" | jq -r --arg name "$STATUS_FIELD_NAME" --arg status "$STATUS_VALUE" '.fields[] | select(.name==$name) | .options[] | select(.name==$status) | .id')
+
+          gh project item-edit \
+            --id "$item_id" \
+            --project-id "$PROJECT_ID" \
+            --field-id "$field_id" \
+            --single-select-option-id "$option_id"
