@@ -1,0 +1,48 @@
+name: Add issue to board (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      status:
+        description: "Status to set on the new project item (Todo / In Progress / Done / Waiting)"
+        required: false
+        type: string
+        default: Todo
+    secrets:
+      PROJECT_TOKEN:
+        description: "PAT with project scope, authorized for the yancya user account project"
+        required: true
+
+env:
+  PROJECT_OWNER: yancya
+  PROJECT_NUMBER: 1
+  STATUS_FIELD_NAME: Status
+
+jobs:
+  add-to-board:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add issue to project and set Status
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          STATUS: ${{ inputs.status }}
+        run: |
+          set -euo pipefail
+
+          item_id=$(gh project item-add "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --url "$ISSUE_URL" --format json -q .id)
+
+          project_id=$(gh api graphql -f query='
+            query($owner:String!, $number:Int!) {
+              user(login:$owner) { projectV2(number:$number) { id } }
+            }' -f owner="$PROJECT_OWNER" -F number="$PROJECT_NUMBER" -q .data.user.projectV2.id)
+
+          field_json=$(gh project field-list "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --format json)
+          field_id=$(echo "$field_json" | jq -r --arg name "$STATUS_FIELD_NAME" '.fields[] | select(.name==$name) | .id')
+          option_id=$(echo "$field_json" | jq -r --arg name "$STATUS_FIELD_NAME" --arg status "$STATUS" '.fields[] | select(.name==$name) | .options[] | select(.name==$status) | .id')
+
+          gh project item-edit \
+            --id "$item_id" \
+            --project-id "$project_id" \
+            --field-id "$field_id" \
+            --single-select-option-id "$option_id"

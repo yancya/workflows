@@ -29,6 +29,7 @@ jobs:
 ## 収録ワークフロー
 
 - `auto-assign.yml` — issue 作成時に指定ユーザー（デフォルト `yancya`）を自動 assign する
+- `add-to-board.yml` — issue 作成時に yancya の個人プロジェクト「やんちゃのプロジェクト」（[yancya/project](https://github.com/yancya/project) 参照）に自動追加し、Status を設定する。`project` スコープを持つ PAT を呼び出し元 repo の secret（例: `PROJECT_TOKEN`）として渡す必要がある（このリポジトリ自体には秘密情報を置かない設計のため）
 
 ## 新しいリポジトリへの展開
 
